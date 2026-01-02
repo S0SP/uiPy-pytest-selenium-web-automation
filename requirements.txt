@@ -1,0 +1,7 @@
+pytest==8.1.1
+selenium>=4.20.0
+pytest-html==4.1.1
+pytest-xdist==3.5.0
+python-dotenv==1.0.1
+pytest-rerunfailures==14.0
+Pillow==10.3.0
