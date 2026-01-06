@@ -1,0 +1,73 @@
+name: Web UI Test Suite
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 7 * * *"   # Daily at 7 AM UTC
+
+jobs:
+  run-ui-tests:
+    name: Run Selenium Pytest Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install Chrome browser
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create .env file
+        run: |
+          echo "BASE_URL=https://www.saucedemo.com" >> .env
+          echo "STANDARD_USER=standard_user" >> .env
+          echo "PASSWORD=secret_sauce" >> .env
+          echo "LOCKED_USER=locked_out_user" >> .env
+          echo "BROWSER=chrome" >> .env
+          echo "HEADLESS=true" >> .env
+
+      - name: Run smoke tests
+        run: |
+          pytest tests/ -m smoke -v --tb=short \
+            --html=reports/report.html \
+            --self-contained-html
+
+      - name: Run full test suite
+        if: always()
+        run: |
+          pytest tests/ -v --tb=short \
+            --html=reports/full_report.html \
+            --self-contained-html \
+            --browser=chrome \
+            --headless=true
+
+      - name: Upload HTML Test Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: selenium-test-report
+          path: reports/
+          retention-days: 14
